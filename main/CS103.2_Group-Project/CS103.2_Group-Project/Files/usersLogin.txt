@@ -1,0 +1,4 @@
+hospital1,hpass1,1
+donor1,dpass,2
+failuser,fail,
+admin,adminpassword,0
