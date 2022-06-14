@@ -1,5 +1,6 @@
 // CS103.2_Group-Project.cpp : This file contains the 'main' function. Program execution begins and ends there.
 // Mikkie, Sese, Delear - O for Owesome
+//Registr
 
 #include <iostream>
 #include <string>
@@ -7,6 +8,13 @@
 #include <fstream> //Read from File
 
 using namespace std;
+//First stage of users entering user and password before donating
+
+//Rego is function for registration and Log and Hospital and Donor is Login Info - Sese
+void rego();
+void hospital();
+void donor();
+
 
 //User struct by Michaela O'Brien
 //Will store all the users personal and relevent medical information
@@ -25,7 +33,9 @@ struct User
 };
 
 /* Global Variables */
-string filepathUsersLogin = "C:/Users/mikki/OneDrive - UP Education/Desktop/CS103.2 - Group Project/main/CS103.2_Group-Project/CS103.2_Group-Project/Files/usersLogin.txt";
+//remember forward dash
+string filepathUsersLogin = "File/usersLogin.txt";
+
 string message = "", line;
 vector<User> users;// Vector of User struct
 
@@ -44,8 +54,9 @@ bool checkLogin() {
 	/* Local Variables */
 	int tries = 0;
 	string input;
-
-	cout << "\n\t\t\t\tLOGIN\n\n";
+	cout << "\n======================================================================================================================";
+	cout << "\n\n\t\t\t\t\t\t     LOGIN\n\n";
+	cout << "======================================================================================================================\n";
 
 	system("PAUSE");// Makes the program wait until any key is pressed
 	system("CLS");// Clears Screen
@@ -129,6 +140,16 @@ bool checkLogin() {
 
 int main()
 {
+
+	rego();
+
+	ofstream user;
+	ifstream password;
+
+
+
+
+
 	if (checkLogin())
 	{
 		/* Successful Login */
@@ -158,4 +179,98 @@ int main()
 		cout << "\nExiting the program now...\n";
 		exit(0);
 	}
+
 }
+//rego code is the switch case for the main menu //Sese Code 
+void rego()
+{
+
+
+
+
+
+	int selection = 0;
+
+
+	cout << "\t\t \t  \t  \t...Welcome to Blood Bank NZ...";
+	cout << "\n\n\n Register as Donor [1]";
+	cout << "\n Login [2]";
+	cout << "\n Press 3 to exit [3] ";
+	cout << "\n";
+	cin >> selection;
+	switch (selection)
+	{
+	case 1:
+
+		donor();
+
+		break;
+
+	case 2:
+
+		//breaks out of case and program underneath works. 
+		break;
+	case 3:
+		exit(0);
+		break;
+
+	default:
+		cout << "Closing Program... ";
+		system("Pause");
+		system("CLS");
+		exit(0);
+		break;
+	}
+
+
+
+};
+//File Handling for Donor registration part
+void donor()
+{
+	ofstream file;
+	string tempName = "";
+	string tempPass = "";
+	int number;
+	file.open("File/usersLogin.txt", ios::app); // this will create file if it's not there, or open. //file mode parameter
+	cout << "add user name: ";
+	cin >> tempName;
+	cout << endl;
+	cout << "add password: ";
+	cin >> tempPass;
+
+
+
+
+	file << tempName << ",";
+	file << tempPass << "," << 2;
+	file << endl;
+	file.close();
+}
+//registerhospital within admin perimeters
+void hospital()
+{
+	ofstream file;
+	string tempName = "";
+	string tempPass = "";
+	int number;
+	file.open("File/usersLogin.txt", ios::app); // this will create file if it's not there, or open. //file mode parameter
+	cout << "add user name: ";
+	cin >> tempName;
+	cout << endl;
+	cout << "add password: ";
+	cin >> tempPass;
+
+
+
+
+	file << tempName << ",";
+	file << tempPass << "," << 1;
+	file << endl;
+	file.close();
+}
+//sese code ^^
+
+// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
+// Debug program: F5 or Debug > Start Debugging menu
+
