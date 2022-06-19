@@ -1,0 +1,7 @@
+admin,adminpass,0
+donor1,donor1pass,2
+hosp1,hosp1pass,1
+donor2,donor2pass,2
+mikkie,coolpass,2
+
+toto,toto,2
