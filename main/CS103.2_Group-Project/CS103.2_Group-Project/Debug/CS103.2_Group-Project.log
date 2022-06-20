@@ -1,3 +1,4 @@
 ﻿  CS103.2_Group-Project.cpp
-C:\Users\mikki\OneDrive - UP Education\Desktop\CS103.2 - Group Project\main\CS103.2_Group-Project\CS103.2_Group-Project\CS103.2_Group-Project.cpp(289): warning C4715: 'checkLogin': not all control paths return a value
+C:\Users\mikki\OneDrive - UP Education\Desktop\CS103.2 - Group Project\main\CS103.2_Group-Project\CS103.2_Group-Project\CS103.2_Group-Project.cpp(790,10): warning C4101: 'b': unreferenced local variable
+C:\Users\mikki\OneDrive - UP Education\Desktop\CS103.2 - Group Project\main\CS103.2_Group-Project\CS103.2_Group-Project\CS103.2_Group-Project.cpp(128): warning C4715: 'checkIfUsernameExists': not all control paths return a value
   CS103.2_Group-Project.vcxproj -> C:\Users\mikki\OneDrive - UP Education\Desktop\CS103.2 - Group Project\main\CS103.2_Group-Project\Debug\CS103.2_Group-Project.exe
