@@ -65,7 +65,6 @@ void deletefile();
 
 int main()
 {
-	getAllLogins();
 	rego();
 }
 
@@ -87,8 +86,10 @@ void rego()
 	switch (selection)
 	{
 	case 1:
+		getAllLogins();
 		donor();
 	case 2:
+		getAllLogins();
 		loginRedirection();
 		break;
 	case 3:
@@ -109,22 +110,22 @@ void rego()
 // Returns false if the username doesn't exist.
 bool checkIfUsernameExists(string tempName)
 {
+	bool ans;
 	for (auto it = users.begin(); it != users.end(); it++)
 	{
 		/* if checkUsername matches the tempName */
 		if (tempName == (*it).username)
 		{
-			cout << tempName << "==" << (*it).username << endl;
 			message = "\nUsername exists\n";
 			return true;
 		}
 		else
 		{
-			cout << tempName << "!=" << (*it).username << endl;
 			message = "\nUsername doesnt exist\n";
-			return false;
+			ans = false;
 		}
 	}
+	return ans;
 }
 
 
@@ -197,109 +198,22 @@ void hospital()
 // Returns true if the username and password entered match.
 // Returns false after 3 wrong attempts.
 // Stores users information in User vector/struct
-//bool checkLogin(int tries) {
-//	system("CLS");// Clears Screen
-//
-//	/* Local Variables */
-//	string username, password;
-//	string tempName = "";
-//	string tempPass = "";
-//	string tempPerm = "";
-//	string tempBlood = "";
-//
-//	cout << "\t\tLogin\n\n";
-//
-//	ifstream usersFile(filepathUsersLogin);// open file
-//	if (usersFile.is_open())
-//	{
-//		if (tries > 2)
-//		{
-//			message = "\nSorry, thats 3 failed attempts to login.\nPlease try again later.\n";
-//			return false;
-//		}
-//		else
-//		{
-//
-//			cout << message << endl;//potential message output
-//			message = "";
-//
-//			cout << "Please enter username: ";
-//			cin >> username;
-//
-//			/* read each line in the file one at a time */
-//			while (getline(usersFile, line))
-//			{
-//				if (!usersFile.eof())
-//				{
-//					tempName.assign(line, 0, line.find(","));//assign tempName the username from the line
-//
-//					/* if username matches the tempName */
-//					while (username == tempName && tries < 3)
-//					{
-//						//size_t passwordLength = ((line.length()) - (tempName.length()) - 3);
-//
-//						tempPass.assign(line, tempName.length() + 1, line.find(",")); //assign tempPass the password from the line
-//
-//						cout << message << endl;//potential message output
-//						message = "";
-//
-//						cout << "Please enter password: ";
-//						cin >> password;
-//						/* if password matches the tempPass */
-//
-//						if (password == tempPass)
-//						{
-//							tempBlood.assign(line, tempPass.length() + 1, line.find(","));
-//
-//							//preparing for getting permission level
-//							size_t pos = line.length() - 1;
-//							tempPerm = line.substr(pos);
-//
-//
-//
-//							loggedinUser.username = tempName;
-//							loggedinUser.password = tempPass;
-//							loggedinUser.bloodGroup = tempBlood;
-//							loggedinUser.permission = stoi(tempPerm);//string to int
-//
-//							cout << loggedinUser.username << "\t" << loggedinUser.password << "\t" << loggedinUser.bloodGroup << "\t" << loggedinUser.permission << endl;
-//
-//							usersFile.close(); // Close usersFile
-//							return true;
-//						}
-//						else
-//						{
-//							cout << loggedinUser.username << "\t" << loggedinUser.password << "\t" << loggedinUser.bloodGroup << "\t" << loggedinUser.permission << endl;
-//
-//							tries++;
-//							message = "\nPassword incorrect\n";
-//						}//endIf password == tempPass
-//					}//endIf username == tempName
-//				}
-//			}//end While getLine
-//			usersFile.close();
-//
-//
-//			if (username != tempName && tries < 3)
-//			{
-//				tries++;
-//				message = "\nUsername incorrect\n";
-//				checkLogin(tries);
-//			}
-//		}
-//	} //endIf userFile is open
-//	else
-//	{
-//		message = "\nUnable to open usersLogin file\n";
-//		return false;
-//	}
-//}
-
 bool login(int tries) {
+
 	string username, password;
-	
-	while (tries < 3)
+	size_t i = 0;
+
+	system("CLS");
+	cout << "\n\t\tLogin\n" << endl;
+
+	if (tries > 2)
 	{
+		message = "\nSorry, thats 3 failed attempts to login.\nPlease try again later.\n";
+		return false;
+	}
+	else
+	{
+
 		cout << message << endl;//potential message output
 		message = "";
 
@@ -308,16 +222,19 @@ bool login(int tries) {
 
 		for (size_t i = 0; i < users.size(); i++)
 		{
-			while (users[i].username == username && tries < 3)
+			/* if username matches the tempName */
+			while (username == users[i].username && tries < 3)
 			{
 				cout << message << endl;//potential message output
 				message = "";
 
 				cout << "Please enter password: ";
 				cin >> password;
+				/* if password matches the tempPass */
 
-				if (users[i].password == password)
+				if (password == users[i].password)
 				{
+
 					loggedinUser.username = users[i].username;
 					loggedinUser.password = users[i].password;
 					loggedinUser.bloodGroup = users[i].bloodGroup;
@@ -326,16 +243,21 @@ bool login(int tries) {
 				}
 				else
 				{
-					tries++;
-					cout << "Incorrect password" << endl;
-				}
+					cout << loggedinUser.username << "\t" << loggedinUser.password << "\t" << loggedinUser.bloodGroup << "\t" << loggedinUser.permission << endl;
 
-			}
+					tries++;
+					message = "\nPassword incorrect\n";
+				}//endIf password == tempPass
+			}//endIf username == tempName
 		}
-		tries++;
-		cout << "Incorrect username" << endl;
 	}
-	return false;
+	if (username != users[i].username && tries < 3)
+	{
+		cout << users[i].username << "\ttries: " << tries << endl;
+		tries++;
+		message = "\nUsername incorrect\n";
+		login(tries);
+	}
 }
 
 
@@ -361,8 +283,6 @@ void loginRedirection()
 			system("PAUSE");
 			break;
 		case 2:
-			system("CLS");
-			cout << "\n\t\t\tWelcome to the Donor Homepage.\n\n";
 			welcome();
 			break;
 		default: /*	 Failed Login  */
@@ -447,6 +367,10 @@ void adminMenu()
 // Returns number of logins
 void getAllLogins()
 {
+	if (!users.empty())
+	{
+		users.clear();
+	}
 	string temp;
 	ifstream usersFile(filepathUsersLogin);// open file
 	if (usersFile.is_open())
@@ -475,6 +399,8 @@ void getAllLogins()
 // Admin can enter a username to edit the login
 void viewAllLogins()
 {
+	getAllLogins();
+
 	string input;
 	system("CLS");
 	cout << "\n\t\t\tView All Users\n" << endl;
@@ -539,9 +465,9 @@ void editUser(string input)
 		{
 			if ((*it).username == user)
 			{
-				cout << (*it).username << endl;
-				cout << (*it).password << endl;
-				cout << (*it).permission << endl;
+				cout <<"\t\t" << (*it).username << endl;
+				cout << "\t\t" << (*it).password << endl;
+				cout << "\t\t" << (*it).permission << endl;
 				cout << endl;
 				cout << "To change password please enter [a]\nTo delete user please enter [d]\nTo go back to the MainMenu plese enter [b]";
 				cin >> choice;
@@ -555,9 +481,20 @@ void editUser(string input)
 					system("CLS");
 					cout << "\n\n\n\n\t\t\tAre you sure you want to delete user " << (*it).username << "? [y] yes or [n] no" << endl;
 					cin >> choice;
-					if (choice == 'y')
+					if (choice != 'y')
+					{
+						message = "\nUser not deleted\n";
+					}
+					else
 					{
 						it = users.erase(it);
+						if (choice == 'y' && loggedinUser.username == (*it).username)
+						{
+							system("CLS");
+							cout << "\n\t\tYour account has been deleted\n" << endl;
+							system("PAUSE");
+							loggedinUser = {};
+						}
 					}
 					break;
 				default:
@@ -580,6 +517,7 @@ void editUser(string input)
 					}
 				}
 				usersFile.close();
+				getAllLogins();
 				return;
 			}
 		}
@@ -591,6 +529,7 @@ void editUser(string input)
 void welcome()
 {
 	system("CLS");
+
 	int a;  //local variable 
 
 	cout << "\n-----Welcome-----";  //main menu
