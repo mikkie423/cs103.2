@@ -30,15 +30,38 @@ struct User
 	string bloodGroup;
 	BookingInformation booking;
 
-};	User loggedinUser; //LoggedinUser struct
+}; User* loggedinUser;
 
+struct Stock
+{
+	string bloodGroup;
+	int available;
+};
+
+struct Request
+{
+	User user;
+	Stock stock;
+	int status;
+};
+
+vector<Stock> totals;
+vector<Request>requests;
+
+
+
+//User loggedinUser; //LoggedinUser struct, and pointer
 
 /* Global Variables */
 string filepathUsersLogin = "Files/usersLogin.txt";
+string filepathBookings = "Files/bookingAppointments.txt";
+string filepathStock = "Files/stock.txt";
+string filepathRequests = "Files/requests.txt";
 string message = "", line;
 vector<User> users;// Vector of User struct
 
 int d, e;  //global variables to identify if user already has appointment
+int toApprove = 0;
 
 
 /* Function Initialisations */
@@ -60,16 +83,21 @@ void eligibilityTest();
 void bookAppt();
 void viewAppt();
 void editAppt();
-void cancelAppt();
-void deletefile();
+void deletefile(string username);
+
+void getAllBookings();
+void viewAllBookings();
+void hospitalMenu();
+void getAllStock();
+void viewAllStock();
+void requestStock();
+void viewAllRequests();
+void getRequests();
 
 int main()
 {
 	rego();
 }
-
-
-
 
 //rego code is the switch case for the main menu //Sese Code 
 void rego()
@@ -128,7 +156,6 @@ bool checkIfUsernameExists(string tempName)
 	return ans;
 }
 
-
 //File Handling for Donor registration part //Sese Code
 void donor()
 {
@@ -182,7 +209,6 @@ void hospital()
 		cout << "add password: ";
 		cin >> tempPass;
 
-
 		file << "\n" << tempName << "\n" << tempPass << "\n" << "na" << "\n" << 1;
 		file.close();
 	}
@@ -193,12 +219,12 @@ void hospital()
 
 }
 
-
-// CheckLogin function by Michaela
+// Login function by Michaela
 // Returns true if the username and password entered match.
 // Returns false after 3 wrong attempts.
-// Stores users information in User vector/struct
-bool login(int tries) {
+// Stores users information in User vector/structs
+bool login(int tries)
+{
 
 	string username, password;
 	size_t i = 0;
@@ -234,16 +260,12 @@ bool login(int tries) {
 
 				if (password == users[i].password)
 				{
+					loggedinUser = &users[i]; //loggedinUser pointer to the address of the vector User struct that is the user logged in
 
-					loggedinUser.username = users[i].username;
-					loggedinUser.password = users[i].password;
-					loggedinUser.bloodGroup = users[i].bloodGroup;
-					loggedinUser.permission = users[i].permission;
 					return true;
 				}
 				else
 				{
-					cout << loggedinUser.username << "\t" << loggedinUser.password << "\t" << loggedinUser.bloodGroup << "\t" << loggedinUser.permission << endl;
 
 					tries++;
 					message = "\nPassword incorrect\n";
@@ -260,7 +282,6 @@ bool login(int tries) {
 	}
 }
 
-
 // LoginRedirection function by Michaela
 // Depending on the logged in users permission level: 0 - Admin, 1 - Hospital, 2 - Donor;
 // Redirects the user to pages they are allowed to access,
@@ -272,15 +293,13 @@ void loginRedirection()
 	if (login(tries))
 	{
 		/* Successful Login */
-		switch (loggedinUser.permission)
+		switch (loggedinUser->permission)
 		{
 		case 0:
 			adminMenu();
 			break;
 		case 1:
-			system("CLS");
-			cout << "\n\t\t\tWelcome to the Hospital Homepage.\n\n";
-			system("PAUSE");
+			hospitalMenu();
 			break;
 		case 2:
 			welcome();
@@ -301,30 +320,28 @@ void loginRedirection()
 // Allows Admin to view, adjust stock and stock requests
 void adminMenu()
 {
-	if (loggedinUser.permission != 0) // if loggedinUser isnt an admin, logs the user out and boots to main screen
+	getRequests();
+	if (loggedinUser->permission != 0) // if loggedinUser isnt an admin, logs the user out and boots to main screen
 	{
 		loggedinUser = {};
 		rego();
 	}
 
-
-	int numOfRequests = 1; // If there is any requests //TODO actually sort this 
-
 	char input = 'f';
-
 
 	while (input != 'a' || input != 'b' || input != 'c' || input != 'd')
 	{
 		system("CLS");
 		cout << "\n\t\t\tWelcome to the Admin Homepage.\n\n";
-		if (numOfRequests > 0)
+		if (toApprove >= 1)
 		{
-			message = "\n\t\t*** There is a new request for you to look at ***\n";
+			message = "\n\t\t*** There are new requests for you to approve ***\n";
 		}
 		else
 		{
 			message = "";
 		}
+
 		cout << message << endl;
 		message = ""; //clears old message
 
@@ -338,14 +355,10 @@ void adminMenu()
 		switch (input)
 		{
 		case 'a':
-			system("CLS");
-			cout << "View Requests" << endl; // View, edit, approve, cancel requests
-			system("PAUSE");
+			viewAllStock();
 			break;
 		case 'b':
-			system("CLS");
-			cout << "View Appointments" << endl; // View, add, edit, cancel appointments
-			system("PAUSE");
+			viewAllBookings();
 			break;
 		case 'c':
 			viewAllLogins();
@@ -377,7 +390,8 @@ void getAllLogins()
 	{
 		User temp_user;
 
-		while (!usersFile.eof()) {
+		while (!usersFile.eof())
+		{
 			getline(usersFile, temp_user.username);
 			getline(usersFile, temp_user.password);
 			getline(usersFile, temp_user.bloodGroup);
@@ -385,13 +399,296 @@ void getAllLogins()
 			temp_user.permission = stoi(temp);
 			users.push_back(temp_user);
 		}
+
 	}
 	else
 	{
 		cout << "Users File not found" << endl;
 	}
+	usersFile.close();
+	getAllBookings();
 }
 
+void getAllBookings()
+{
+	if (users.empty())
+	{
+		getAllLogins();
+	}
+	string temp;
+	string tempName;
+	ifstream bookingsFile(filepathBookings);// open file
+	if (bookingsFile.is_open())
+	{
+		while (!bookingsFile.eof())
+		{
+			;			getline(bookingsFile, tempName);
+			for (size_t i = 0; i < users.size(); i++)
+			{
+				if (tempName != users[i].username && users[i].booking.d != 1)
+				{
+					users[i].booking.d = 0;
+					users[i].booking.e = 0;
+				}
+				else if (tempName == users[i].username)
+				{
+					users[i].booking.d = 1;
+					users[i].booking.e = 1;
+					getline(bookingsFile, users[i].bloodGroup);
+					getline(bookingsFile, users[i].booking.location);
+					getline(bookingsFile, temp);
+					users[i].booking.date = stoi(temp);
+				}
+			}
+		}
+		bookingsFile.close();
+	}
+	else
+	{
+		cout << "Bookings File not found" << endl;
+	}
+}
+
+void getAllStock()
+{
+	if (!totals.empty())
+	{
+		totals.clear();
+	}
+	string temp;
+	ifstream file(filepathStock);// open file
+	if (file.is_open())
+	{
+		Stock temp_stock;
+
+		while (!file.eof())
+		{
+			getline(file, temp_stock.bloodGroup);
+			getline(file, temp);
+			temp_stock.available = stoi(temp);
+			totals.push_back(temp_stock);
+		}
+		file.close();
+
+	}
+	else
+	{
+		cout << "Stock File not found" << endl;
+	}
+}
+
+void viewAllStock()
+{
+	getAllStock();
+
+	system("CLS");
+	cout << "\n\t\t\tView All Stock\n" << endl;
+	for (size_t i = 0; i < totals.size(); i++)
+	{
+		cout << totals[i].bloodGroup << "\t\t" << totals[i].available << endl;
+	}
+	if (loggedinUser->permission == 1 && loggedinUser->permission != 0)
+	{
+		requestStock();
+	}
+	else if (loggedinUser->permission == 0)
+	{
+		viewAllRequests();
+	}
+	loginRedirection();
+}
+
+void getRequests()
+{
+	if (!requests.empty())
+	{
+		requests.clear();
+	}
+	string temp;
+	ifstream file(filepathRequests);// open file
+	if (file.is_open())
+	{
+		Request temp_request;
+
+		while (!file.eof())
+		{
+			getline(file, temp_request.user.username);
+			getline(file, temp_request.stock.bloodGroup);
+			getline(file, temp);
+			temp_request.stock.available = stoi(temp);
+			getline(file, temp);
+			temp_request.status = stoi(temp);
+			requests.push_back(temp_request);
+			if (temp_request.status == 0)
+			{
+				toApprove++;
+			}
+		}
+		file.close();
+
+	}
+	else
+	{
+		cout << "Requests File not found" << endl;
+	}
+}
+
+void viewAllRequests()
+{
+	string input;
+	getRequests();
+
+	system("CLS");
+	cout << "\n\t\t\tView All Requests\n" << endl;
+	for (size_t i = 0; i < requests.size(); i++)
+	{
+		cout << "[" << i << "] " << requests[i].user.username << "\t" << requests[i].stock.bloodGroup << "\t" << requests[i].stock.available << "\t";
+		switch (requests[i].status)
+		{
+		case 0:
+			cout << "Status: Pending" << endl;
+			break;
+		case 1:
+			cout << "Status: Accepted" << endl;
+			break;
+		case 2:
+			cout << "Status: Denied" << endl;
+			break;
+		}
+	}
+	cout << "\nTo change the status of a request please enter the request number, otherwise [a] to go back to main menu.\n" << endl;
+	cin >> input;
+	if (input == "a")
+	{
+		return;
+	}
+	else
+	{
+		system("CLS");
+		int j = stoi(input);
+		cout << requests[j].user.username << "\t" << requests[j].stock.bloodGroup << "\t" << requests[j].stock.available << "\t";
+		switch (requests[j].status)
+		{
+		case 0:
+			cout << "Status: Pending" << endl;
+			break;
+		case 1:
+			cout << "Status: Accepted" << endl;
+			break;
+		case 2:
+			cout << "Status: Denied" << endl;
+			break;
+		}
+		cout << "\n[a] To accept this request\n[b] To deny this request\n[c] Go back to main menu.\n" << endl;
+		input = "";
+		cin >> input;
+		if (input == "a")
+		{
+			requests[j].status = 1;
+			cout << "accepted pending request:" << endl;
+			for (size_t j = 0; j < requests.size(); j++)
+			{
+				for (size_t i = 0; i < totals.size(); i++)
+				{
+					if (totals[i].bloodGroup == requests[j].stock.bloodGroup)
+					{
+						totals[i].available -= requests[j].stock.available;
+					}
+				}
+			}
+		}
+		else if (input == "b")
+		{
+			requests[j].status = 2;
+			cout << "denied pending request:" << endl;
+		}
+
+		ofstream outfile;
+		outfile.open(filepathRequests, ios::trunc);
+		for (size_t i = 0; i < requests.size(); i++) {
+			if (i == 0)
+			{
+				outfile << requests[i].user.username << "\n" << requests[i].stock.bloodGroup << "\n" << requests[i].stock.available << "\n" << requests[i].status;
+			}
+			else
+			{
+				outfile << "\n" << requests[i].user.username << "\n" << requests[i].stock.bloodGroup << "\n" << requests[i].stock.available << "\n" << requests[i].status;
+			}
+		}
+		outfile.close();
+		return;
+	}
+}
+
+void requestStock()
+{
+	string input;
+	int amount;
+
+	cout << "\n[a] To go back to the menu\nOtherwise to request stock please enter the Blood Group : ";
+	cin >> input;
+	if (input == "a")
+	{
+		return;
+	}
+	else
+	{
+		for (size_t i = 0; i < totals.size(); i++)
+		{
+			if (totals[i].bloodGroup == input)
+			{
+				cout << "Please enter how much of the stock you want: ";
+				cin >> amount;
+				if (amount <= totals[i].available)
+				{
+					ofstream file(filepathRequests, ios::app);// open file, 
+					if (file.is_open())
+					{
+						file << "\n" << loggedinUser->username << "\n" << input << "\n" << amount << "\n" << 0;
+						cout << "\n" << loggedinUser->username << "\n" << input << "\n" << amount << "\n" << 0;
+					}
+					file.close();
+
+					message = "Stock has been successfully requested.";
+					hospitalMenu();
+				}
+			}
+		}
+	}
+}
+
+// ViewAllBookings function by Michaela
+// Allows an Admin to View all bookings in the system
+void viewAllBookings()
+{
+	string input;
+	system("CLS");
+	cout << "\n\t\t\tView All Bookings\n" << endl;
+
+	for (size_t i = 0; i < users.size(); i++)
+	{
+		if (users[i].booking.d == 1)
+		{
+			cout << users[i].username << "\t\t" << users[i].bloodGroup << "\t\t" << users[i].booking.location << "\t\t" << users[i].booking.date << endl;
+		}
+	}
+	cout << "\n[a] To add a new booking\n[b] To go back to the Menu\nOtherwise enter the username of the booking to edit." << endl;
+	cin >> input;
+	if (input == "a")
+	{
+		cout << "Add new booking as Admin - Still to come..." << endl;
+		system("PAUSE");
+	}
+	else if (input == "b")
+	{
+		return;
+	}
+	else
+	{
+		cout << "Edit Booking by username as Admin - Still to come..." << endl;
+		system("PAUSE");
+	}
+}
 
 // ViewAllLogins function by Michaela
 // Allows an Admin to View all logins in the system
@@ -446,7 +743,6 @@ void viewAllLogins()
 	}
 }
 
-
 // EditUser function by Michaela
 // Gets username from input parameter
 // Finds the vector struct with that username and allows user to change password, or delete the user
@@ -461,64 +757,80 @@ void editUser(string input)
 
 	for (auto it = users.begin(); it != users.end(); it++)
 	{
-		if ((*it).username != "default")
+		if ((*it).username == user)
 		{
-			if ((*it).username == user)
+			cout << "\t\t" << (*it).username << endl;
+			cout << "\t\t" << (*it).password << endl;
+			cout << "\t\t" << (*it).permission << endl;
+			cout << endl;
+			cout << "To change password please enter [a]\nTo delete user please enter [d]\nTo go back to the MainMenu plese enter [b]";
+			cin >> choice;
+			switch (choice)
 			{
-				cout <<"\t\t" << (*it).username << endl;
-				cout << "\t\t" << (*it).password << endl;
-				cout << "\t\t" << (*it).permission << endl;
-				cout << endl;
-				cout << "To change password please enter [a]\nTo delete user please enter [d]\nTo go back to the MainMenu plese enter [b]";
+			case 'a':
+				cout << "\nPlease enter new password: " << endl;
+				cin >> (*it).password;
+				break;
+			case 'd':
+				system("CLS");
+				cout << "\n\n\n\n\t\t\tAre you sure you want to delete user " << (*it).username << "? [y] yes or [n] no" << endl;
 				cin >> choice;
-				switch (choice)
+				if (choice != 'y')
 				{
-				case 'a':
-					cout << "\nPlease enter new password: " << endl;
-					cin >> (*it).password;
-					break;
-				case 'd':
-					system("CLS");
-					cout << "\n\n\n\n\t\t\tAre you sure you want to delete user " << (*it).username << "? [y] yes or [n] no" << endl;
-					cin >> choice;
-					if (choice != 'y')
+					message = "\nUser not deleted\n";
+				}
+				else
+				{
+					if (choice == 'y')
 					{
-						message = "\nUser not deleted\n";
-					}
-					else
-					{
-						it = users.erase(it);
-						if (choice == 'y' && loggedinUser.username == (*it).username)
+						if (loggedinUser->username == user)
 						{
+							loggedinUser = {};
+							it = users.erase(it);
 							system("CLS");
 							cout << "\n\t\tYour account has been deleted\n" << endl;
 							system("PAUSE");
-							loggedinUser = {};
 						}
 					}
-					break;
-				default:
-					break;
-				}
-				ofstream usersFile(filepathUsersLogin);// open file, 
-				if (usersFile.is_open())
-				{
-					for (size_t i = 0; i < users.size(); i++)
+					else if (choice == 'y')
 					{
-						if (i == 0)
-						{
-							usersFile << users[i].username << "\n" << users[i].password << "\n" << users[i].bloodGroup << "\n" << users[i].permission;
-
-						}
-						else
-						{
-							usersFile << "\n" << users[i].username << "\n" << users[i].password << "\n" << users[i].bloodGroup << "\n" << users[i].permission;
-						}
+						it = users.erase(it);
 					}
 				}
-				usersFile.close();
-				getAllLogins();
-				return;
+				break;
+			default:
+				break;
+			}
+			ofstream usersFile(filepathUsersLogin);// open file, 
+			if (usersFile.is_open())
+			{
+				for (size_t i = 0; i < users.size(); i++)
+				{
+					if (i == 0)
+					{
+						usersFile << users[i].username << "\n" << users[i].password << "\n" << users[i].bloodGroup << "\n" << users[i].permission;
+
+					}
+					else
+					{
+						usersFile << "\n" << users[i].username << "\n" << users[i].password << "\n" << users[i].bloodGroup << "\n" << users[i].permission;
+					}
+				}
+			}
+			usersFile.close();
+			getAllLogins();
+			if (loggedinUser == nullptr)
+			{
+				deletefile(user);
+				rego();
+			}
+			else if (loggedinUser->permission == 0)
+			{
+				viewAllLogins();
+			}
+			else
+			{
+				welcome();
 			}
 		}
 	}
@@ -528,10 +840,9 @@ void editUser(string input)
 
 void welcome()
 {
-	system("CLS");
-
 	int a;  //local variable 
 
+	system("CLS");
 	cout << "\n-----Welcome-----";  //main menu
 
 	cout << message;
@@ -541,7 +852,9 @@ void welcome()
 	cout << "\nPress 1 to see if youre eligible to donate";
 	cout << "\nPress 2 to book an appointment";
 	cout << "\nPress 3 to view, update or cancel an appointment";
-	cout << "\nPress 4 to logout" << endl;
+	cout << "\nPress 4 to view, update or delete your account";
+	cout << "\nPress 5 to logout" << endl;
+
 	cin >> a;
 	switch (a)  //switch case for main menu screen
 	{
@@ -552,19 +865,23 @@ void welcome()
 	case 3: viewAppt();
 		break;
 	case 4:
+		editUser(loggedinUser->username);
+		break;
+	case 5:
 		loggedinUser = {}; //reset the structure as user logs out
 		rego();
-
 		break;
-	default: cout << "\nInvalid answer, please choose from the following options: " << endl;
+	default:
+		message = "\nInvalid answer, please choose from the following options: \n";
+		welcome();
 		break;
 	}
-	while (a != 4);
+
 }
 void eligibilityTest()
 {
-	users.push_back(User());  //global variable default with constructor
-	users.push_back(User()); // push back new user
+	//users.push_back(User());  //global variable default with constructor
+	//users.push_back(User()); // push back new user
 	char op, a, b;  //local variables
 	if (d == 1) //d = 1 means they already booked an appoint
 	{
@@ -590,27 +907,31 @@ void eligibilityTest()
 	{
 		cout << Questions[i] << endl;
 		cin >> a;
-		if (a == 'n')
 
+		while (a != 'n' && a != 'y')
 		{
-			cout << "Success" << endl;
-			e = 1;  //e = 1 means they can donate and book an appointment
+			cout << "Invalid answer, please either type y = yes, or n = no: ";
+			cin >> a;
 		}
 
 
-		else if (a == 'y')
+
+
+		if (a == 'y')
 		{
-			e = 0;
+			loggedinUser->booking.e = 0;
 			message = "\nSorry, you are not eligible, plese try again later.\n";
 			welcome();
 
 		}
+		else if (a == 'n')
 
-		while (a != 'n' && a != 'y')
 		{
-			cout << "Inavlid answer, please either type y = yes, or n = no: ";
-			cin >> a;
+			cout << "Success" << endl;
+			loggedinUser->booking.e = 1;  //e = 1 means they can donate and book an appointment
 		}
+
+
 	}
 
 	cout << "\nYou are eligible to donate blood \n\nWould you like to book an appointment? y/n: ";
@@ -619,11 +940,11 @@ void eligibilityTest()
 
 	if (b == 'y')
 	{
-		e = 1;
-		cout << "\nThank you for choosing to book an appointment" << endl;
+		loggedinUser->booking.e = 1;
+		cout << "\nThank you for choosing to book an appointment ";
 		bookAppt();
 	}
-	else if (b == 'n')
+	else
 	{
 		cout << "\nYou chose not to book an appointment" << endl;
 		welcome();
@@ -633,26 +954,26 @@ void eligibilityTest()
 }
 void bookAppt()
 {
+
+	system("CLS");
 	//local variables
 	char b, c, op;
 
 
-	if (e == 0 && d == 0)  //d = 0 & e = 0 redirects them to the eligibilty test if they haven't done it already
+	if (loggedinUser->booking.e == 0 && loggedinUser->booking.d == 0)  //d = 0 & e = 0 redirects them to the eligibilty test if they haven't done it already
 	{
 		cout << "\nYou must be eligible first before you can donate, \nType y to go to the eligibility test \nType n to go back to main page " << endl;
 		cin >> c;
 		if (c == 'y')
 		{
 			eligibilityTest();
-
 		}
-		else if (c == 'n')
+		else
 		{
 			welcome();
 		}
 	}
-
-	if (d == 1)  //d = 1 means they already booked an appointment
+	if (loggedinUser->booking.d == 1)  //d = 1 means they already booked an appointment
 	{
 		cout << "\nYou already booked an appointment" << endl;
 		cout << "\nif you would like to view or cancel an appointment press y, or press n to go back to the main page";
@@ -661,91 +982,87 @@ void bookAppt()
 		{
 			viewAppt();
 		}
-		else if (op == 'n')
+		else
 		{
 			welcome();
 		}
 	}
-	ofstream file;
-	file.open("Booking appointments.txt", ios::app);
-	if (file.is_open())
-		cout << "File is open";
-	else cout << "Cannot open file";
-	cout << "\n\nWhats your first name: ";
-	cin.ignore();
-	cin >> loggedinUser.username;
-	cout << "\nWhat is your blood group,\nPlease write in lower case letters \nIf you don't know just answer n: ";
-	cin >> loggedinUser.bloodGroup;
 
 
 	cout << "\nWhat location would you like to donate, please type it in lower case, choose from the following \nAuckland\nWellington\nChristchurch " << endl;
-	cin >> loggedinUser.booking.location;
-	if (loggedinUser.booking.location != "auckland" && loggedinUser.booking.location != "wellington" && loggedinUser.booking.location != "christchurch")
+	cin >> loggedinUser->booking.location;
+	if (loggedinUser->booking.location != "auckland" && loggedinUser->booking.location != "wellington" && loggedinUser->booking.location != "christchurch")
 	{
 		cout << "\nInvalid answer, choose from the folliwng options: ";
-		cin >> loggedinUser.booking.location;
-		while (loggedinUser.booking.location != "auckland" && loggedinUser.booking.location != "wellington" && loggedinUser.booking.location != "christchurch")
+		cin >> loggedinUser->booking.location;
+		while (loggedinUser->booking.location != "auckland" && loggedinUser->booking.location != "wellington" && loggedinUser->booking.location != "christchurch")
 		{
 			cout << "\nInvalid answer, choose from the folliwng options: ";
-			cin >> loggedinUser.booking.location;
+			cin >> loggedinUser->booking.location;
 		}
 	}
 	cout << "\nWhat date would you like to donate, please type in this order: year - month - day: ";
-	cin >> loggedinUser.booking.date;
-	if (loggedinUser.booking.date <= 20220620 || loggedinUser.booking.date >= 20240620)
+	cin >> loggedinUser->booking.date;
+	if (loggedinUser->booking.date <= 20220620 || loggedinUser->booking.date >= 20240620)
 	{
 		cout << "\nInvalid date, choose current timeline: ";
-		cin >> loggedinUser.booking.date;
-		while (loggedinUser.booking.date <= 20220620 || loggedinUser.booking.date >= 20240620) //while loop if they keep answering wrong
+		cin >> loggedinUser->booking.date;
+		while (loggedinUser->booking.date <= 20220620 || loggedinUser->booking.date >= 20240620) //while loop if they keep answering wrong
 		{
 			cout << "\nInvalid date, choose current timeline: ";
-			cin >> loggedinUser.booking.date;
+			cin >> loggedinUser->booking.date;
 		}
 	}
+	ofstream file;
+	file.open(filepathBookings, ios::app);
+	if (file.is_open())
+	{
+		file << "\n" << loggedinUser->username << "\n" << loggedinUser->bloodGroup << "\n" << loggedinUser->booking.location << "\n" << loggedinUser->booking.date;
+		file.close();
+		getAllLogins();
+	}
+	else
+	{
+		cout << "Cannot open file";
+	}
 
-	file << loggedinUser.username << "\t" << loggedinUser.bloodGroup << "\t" << loggedinUser.booking.location << "\t" << loggedinUser.booking.date << endl;
-	file.close();
 	do  //do-while loop incase they fail to answer any of the following options
 	{
 		cout << "\nTo view your details please type y, or type n to go back to the main menu: ";
 		cin >> b;
+		loggedinUser->booking.d = 1;
 		if (b == 'y')
 		{
 			cout << "\nThank you for choosing to book an appointment" << endl;
-			d = 1;
 			viewAppt();
 		}
-		else if (b == 'n')
+		else
 		{
 			cout << "\nYou chose not to view your details" << endl;
-			d = 1;
 			welcome();
 		}
-	} while (b != 'n' && b != 'y');
+	} while (b != 'y');
 
 }
 void viewAppt()
 {
 	char a, b, op;
 
-	if (e == 0)
+	if (loggedinUser->booking.e == 0)
 	{
-		message = "\nYou must be eligible first before you can donate\n";
-		welcome();
-		/*cout << "\nYou must be eligible first before you can donate, \nType y to go to the eligibility test \nType n to go back to main page " << endl;
+		cout << "\nYou must be eligible first before you can donate, \nType y to go to the eligibility test \nType n to go back to main page " << endl;
 		cin >> b;
 		if (b == 'y')
 		{
 			eligibilityTest();
-
 		}
-		else if (b == 'n')
+		else
 		{
 			welcome();
-		}*/
+		}
 	}
 
-	if (d == 0)
+	if (loggedinUser->booking.d == 0)
 	{
 		cout << "\nYou haven't booked an appointment" << endl;
 		cout << "\nIf you would like to book an appointment press y, or press n to go back to the main page" << endl;
@@ -754,18 +1071,16 @@ void viewAppt()
 		{
 			bookAppt();
 		}
-		else if (op == 'n')
+		else
 		{
 			welcome();
 		}
 	}
 
-
-
-	cout << "\n\n" << loggedinUser.username;
-	cout << "\n" << loggedinUser.bloodGroup;
-	cout << "\n" << loggedinUser.booking.location;
-	cout << "\n" << loggedinUser.booking.date << endl;
+	cout << "\n\n" << loggedinUser->username;
+	cout << "\n" << loggedinUser->bloodGroup;
+	cout << "\n" << loggedinUser->booking.location;
+	cout << "\n" << loggedinUser->booking.date << endl;
 
 	do  //do-while loop incase they fail to answer any of the following options
 	{
@@ -779,7 +1094,7 @@ void viewAppt()
 		else if (a == 'n')
 		{
 			cout << "\nYou chose not to book an appointment" << endl;
-			cancelAppt();
+			deletefile(loggedinUser->username);
 		}
 		else if (a == 'e')
 		{
@@ -792,46 +1107,61 @@ void viewAppt()
 }
 void editAppt()
 {
-	cout << "\n\nWhats your first name: ";
-	cin.ignore();
-	loggedinUser.username;
-	cout << "\nWhat is your blood group,\nPlease write in lower case letters \nIf you don't know just answer n: ";
-	cin >> loggedinUser.bloodGroup;
-
 
 	cout << "\nWhat location would you like to donate, please type it in lower case, choose from the following \nAuckland\nWellington\nChristchurch " << endl;
-	cin >> loggedinUser.booking.location;
-	if (loggedinUser.booking.location != "auckland" && loggedinUser.booking.location != "wellington" && loggedinUser.booking.location != "christchurch")
+	cin >> loggedinUser->booking.location;
+	if (loggedinUser->booking.location != "auckland" && loggedinUser->booking.location != "wellington" && loggedinUser->booking.location != "christchurch")
 	{
 		cout << "\nInvalid answer, choose from the folliwng options: ";
-		cin >> loggedinUser.booking.location;
-		while (loggedinUser.booking.location != "auckland" && loggedinUser.booking.location != "wellington" && loggedinUser.booking.location != "christchurch")
+		cin >> loggedinUser->booking.location;
+		while (loggedinUser->booking.location != "auckland" && loggedinUser->booking.location != "wellington" && loggedinUser->booking.location != "christchurch")
 		{
 			cout << "\nInvalid answer, choose from the folliwng options: ";
-			cin >> loggedinUser.booking.location;
+			cin >> loggedinUser->booking.location;
 		}
 	}
 	cout << "\nWhat date would you like to donate, please type in this order: year - month - day: ";
-	cin >> loggedinUser.booking.date;
-	if (loggedinUser.booking.date <= 20220620 || loggedinUser.booking.date >= 20240620)
+	cin >> loggedinUser->booking.date;
+	if (loggedinUser->booking.date <= 20220620 || loggedinUser->booking.date >= 20240620)
 	{
 		cout << "\nInvalid date, choose current timeline: ";
-		cin >> loggedinUser.booking.date;
-		while (loggedinUser.booking.date <= 20220620 || loggedinUser.booking.date >= 20240620) //while loop if they keep answering wrong
+		cin >> loggedinUser->booking.date;
+		while (loggedinUser->booking.date <= 20220620 || loggedinUser->booking.date >= 20240620) //while loop if they keep answering wrong
 		{
 			cout << "\nInvalid date, choose current timeline: ";
-			cin >> loggedinUser.booking.date;
+			cin >> loggedinUser->booking.date;
 		}
 	}
-	ofstream updateFile;  //fstream file to over-write the previous ofstream file
-	updateFile.open("booking appointments.txt");
+	ofstream updateFile;
+	updateFile.open(filepathBookings, ios::trunc);
 	if (updateFile.is_open())
-		cout << "File is open";
-	else cout << "Cannot open file";
-	updateFile << loggedinUser.username << "\t" << loggedinUser.bloodGroup << "\t" << loggedinUser.booking.location << "\t" << loggedinUser.booking.date << endl;
+	{
+		for (size_t i = 0; i < users.size(); i++)
+		{
+			if (users[i].booking.d == 1)
+			{
+				int j = 0;
+				if (j == 0)
+				{
+					updateFile << users[i].username << "\n" << users[i].bloodGroup << "\n" << users[i].booking.location << "\n" << users[i].booking.date;
+				}
+				else
+				{
+					updateFile << "\n" << users[i].username << "\n" << users[i].bloodGroup << "\n" << users[i].booking.location << "\n" << users[i].booking.date;
+				}
+				j++;
+			}
+		}
+		updateFile.close();
+		getAllLogins();
+	}
+	else
+	{
+		cout << "Cannot open file";
+	}
 
 	cout << " ** Info updated !!!!\n";
-	users.clear();
+	//users.clear();
 
 
 
@@ -840,6 +1170,7 @@ void editAppt()
 	{
 		cout << "\nIf you're happy with this and like to donate then type y, \nOr if you want to cancel your appointment then press n: ";
 		cin >> a;
+		loggedinUser->booking.d = 1;
 		if (a == 'y')
 		{
 			cout << "\nThank you for choosing to book an appointment" << endl;
@@ -847,98 +1178,105 @@ void editAppt()
 		}
 		else if (a == 'n')
 		{
-			cout << "\nYou chose not to book an appointment" << endl;
-			cancelAppt();
+			cout << "\nAre you sure you want to cancel your appointment? y/n: ";
+			cin >> a;
+			if (a == 'y')
+			{
+				deletefile(loggedinUser->username);
+			}
+			else
+			{
+				welcome();
+			}
 		}
 	} while (a != 'y' && a != 'n');
 }
 
-void cancelAppt()
+void deletefile(string username)  //delete file completely deletes the txt file
 {
+	string user = username;
+	char choice = 'f';
+	getAllLogins();
 
-	char a; //local variable
-
-
-	do  //do-while loop incase they fail to answer any of the following options
+	for (auto it = users.begin(); it != users.end(); it++)
 	{
-		cout << "\nAre you sure you want to cancel your appointment? y/n: ";
-		cin >> a;
-		if (a == 'y')
+		if ((*it).booking.d == 1)
 		{
-			deletefile();
-
+			if ((*it).username == user)
+			{
+				system("CLS");
+				cout << "\n\n\n\n\t\t\tAre you sure you want to cancel the booking for " << (*it).username << "? [y] yes or [n] no" << endl;
+				cin >> choice;
+				if (choice != 'y')
+				{
+					message = "\nUser not deleted\n";
+					welcome();
+				}
+				else
+				{
+					(*it).booking.date = NULL;
+					(*it).booking.location = "";
+					(*it).booking.e = 0;  //resets the eligibilty criteria to 0 so they must re-do the test again
+					(*it).booking.d = 0;  //resets the booking to 0 so they must book again if theyre eligible
+				}
+			}
 		}
+	}
 
-		else if (a == 'n')
+
+	ofstream deleteFile;
+	deleteFile.open(filepathBookings, ios::trunc);
+	if (deleteFile.is_open())
+	{
+		for (size_t i = 0; i < users.size(); i++)
 		{
-			d = 1;
-			cout << "\nYou chose not to cancel your appointment." << endl;
+			if (users[i].booking.d == 1)
+			{
+				int j = 0;
+				if (j == 0)
+				{
+					deleteFile << users[i].username << "\n" << users[i].bloodGroup << "\n" << users[i].booking.location << "\n" << users[i].booking.date;
+
+				}
+				else
+				{
+					deleteFile << "\n" << users[i].username << "\n" << users[i].bloodGroup << "\n" << users[i].booking.location << "\n" << users[i].booking.date;
+				}
+			}
 		}
-	} while (a != 'y' && a != 'n');
-}
-
-
-
-void deletefile()  //delete file completely deletes the txt file
-{
-	e = 0;  //resets the eligibilty criteria to 0 so they must re-do the test again
-	d = 0;  //resets the booking to 0 so they must book again if theyre eligible
-	string line;
-	ifstream file("booking appointments.txt"); // create a file stream and open the file for reading 
-	size_t recno = 0;
-	while (getline(file, line)) // count all the lines from the file
-	{
-		++recno;
-	}
-
-	string* records = new string[recno]; // Dynamically allocated array for holding strings
-
-	// we're now past the end of the file, in this case, I think it's simpler to close the file and start afresh
-	file.close(); // close the file
-	file.open("booking appointments.txt"); // open the file
-	for (size_t i = 0; getline(file, line); ++i) // read all the lines from the file and store in records array
-	{
-		cout << line << endl;
-		records[i] = line;
-	}
-
-	file.close(); // close the file
-
-	cout << "\nThese are the records" << endl;
-	for (size_t i = 0; i < recno; ++i) // display all the lines read
-	{
-		cout << i << ": " << records[i] << endl;
-	}
-
-	size_t recno1 = 0;
-	cout << "\nWhich record would you like to delete?" << endl;
-	cin >> recno1; // get the user to pick a record
-
-	if (recno1 < 0 || recno1 >= recno) // validate their choice
-	{
-		cout << "Invalid choice" << endl;
+		deleteFile.close();
+		getAllLogins();
 	}
 	else
 	{
-		cout << "You have chosen to delete record " << recno1 << ": " << records[recno1] << endl;
-		records[recno1].erase(); // blank out users choice 
+		cout << "Cannot open file";
 	}
 
-	ofstream records_output("booking appointments.txt"); // create a file stream and open the file for output
-	cout << "These are the records" << endl;
-	for (size_t i = 0; i < recno; ++i) // write out the new records to screen
-	{
-		if (!records[i].empty())
-		{
-			cout << i << ": " << records[i] << endl;
-			records_output << records[i] << endl;// also overwrite the original file with the new records
-		}
-	}
-
-	records_output.close(); // close the file
 	cout << endl << "Canceled successfully. Goodbye" << endl;
-
-
 }
 
+void hospitalMenu()
+{
+	if (loggedinUser->permission == 2) // if loggedinUser isnt an admin, logs the user out and boots to main screen
+	{
+		loggedinUser = {};
+		rego();
+	}
+	char input;
 
+	system("CLS");
+	cout << "\n\t\t\tWelcome to the Hospital Homepage.\n\n";
+	cout << message << endl;
+	message = "";
+	cout << "[a] Display Stock\n[b] Logout" << endl;
+	cin >> input;
+	if (input == 'a')
+	{
+		viewAllStock();
+	}
+	else
+	{
+		loggedinUser = {};
+		rego();
+	}
+}
