@@ -1,16 +1,17 @@
 // CS103.2_Group-Project.cpp : This file contains the 'main' function. Program execution begins and ends there.
-// Michaela, Sese, Delear - O for Owesome
 // Blood Bank Management System
+// By Michaela, Delear, and Sese
+
 
 #include <iostream>
 #include <string>
-#include <vector> //Vector of Structs
-#include <fstream> //Read from File
+#include <vector>
+#include <fstream> // Read from File
 #include <cstdio> // EOF
 
 using namespace std;
 
-//PersonalInfo struct by Michaela O'Brien
+//PersonalInfo struct by Michaela
 //Will store all the users personal and relevant medical information
 //To be accessed via the User struct.
 struct BookingInformation
@@ -20,7 +21,7 @@ struct BookingInformation
 	int d, e;
 };
 
-//User struct by Michaela O'Brien
+//User struct by Michaela
 //Will store the users login and permission information
 //And points to the users personal information.
 struct User
@@ -32,12 +33,17 @@ struct User
 
 }; User* loggedinUser;
 
+//Stock struct by Michaela
+//Will store the stocks blood type and amount information
 struct Stock
 {
 	string bloodGroup;
 	int available;
 };
 
+//Request struct by Michaela
+//Will store the requests by referencing stock, and users that ordered it
+//Status variable for admin to change.
 struct Request
 {
 	User user;
@@ -45,12 +51,9 @@ struct Request
 	int status;
 };
 
-vector<Stock> totals;
-vector<Request>requests;
-
-
-
-//User loggedinUser; //LoggedinUser struct, and pointer
+vector<User> users;// Vector of User struct
+vector<Stock> totals; // Vector of Stock struct
+vector<Request>requests; // Vector of Request struct
 
 /* Global Variables */
 string filepathUsersLogin = "Files/usersLogin.txt";
@@ -58,42 +61,42 @@ string filepathBookings = "Files/bookingAppointments.txt";
 string filepathStock = "Files/stock.txt";
 string filepathRequests = "Files/requests.txt";
 string message = "", line;
-vector<User> users;// Vector of User struct
-
-int d, e;  //global variables to identify if user already has appointment
-int toApprove = 0;
-
+int d, e;  //global variables to identify if user already has appointment and has passed the eligibilty test
+bool toApprove; //variable for if there are requests to be checked
 
 /* Function Initialisations */
+//Michaela's functions
 bool login(int tries);
 void loginRedirection();
 void adminMenu();
 void getAllLogins();
 void viewAllLogins();
-void editUser(string input);
+void editUser(string user);
 bool checkIfUsernameExists(string tempName);
+bool checkIfBloodGroupExists(string tempBlood);
+void getAllBookings(); //for admin
+void viewAllBookings(); //for admin
+void hospitalMenu();
+void getAllStock();
+void viewAllStock();
+void requestStock();
+void viewAllRequests();
+void getAllRequests();
 
 //Rego is function for registration and Log and Hospital and Donor is Login Info - Sese
 void rego();
 void hospital();
 void donor();
 
-void welcome();  //Donor functions by Delear Goolmorade
+//Donor functions by Delear Goolmorade
+void welcome();  
 void eligibilityTest();
 void bookAppt();
 void viewAppt();
 void editAppt();
-void deletefile(string username);
+void deletefile(string user);
 
-void getAllBookings();
-void viewAllBookings();
-void hospitalMenu();
-void getAllStock();
-void viewAllStock();
-void requestStock();
-void viewAllRequests();
-void getRequests();
-
+// Program execution begins and ends here.
 int main()
 {
 	rego();
@@ -132,30 +135,6 @@ void rego()
 	}
 };
 
-// CheckIfUsernameExists() by Michaela
-// Checks if the username passed already exists in the usersLogin file.
-// Returns true if the username already exists,
-// Returns false if the username doesn't exist.
-bool checkIfUsernameExists(string tempName)
-{
-	bool ans;
-	for (auto it = users.begin(); it != users.end(); it++)
-	{
-		/* if checkUsername matches the tempName */
-		if (tempName == (*it).username)
-		{
-			message = "\nUsername exists\n";
-			return true;
-		}
-		else
-		{
-			message = "\nUsername doesnt exist\n";
-			ans = false;
-		}
-	}
-	return ans;
-}
-
 //File Handling for Donor registration part //Sese Code
 void donor()
 {
@@ -169,13 +148,19 @@ void donor()
 		cout << "add user name: ";
 		cin >> tempName;
 	} while (checkIfUsernameExists(tempName) == true);
+	cin.clear();
 	message = "";
 	cout << endl;
 	cout << "add password: ";
 	cin >> tempPass;
 	cout << endl;
-	cout << "Enter Blood Type ";
-	cin >> tempBlood;
+	do {
+		cout << message << endl;
+		cout << "Enter Blood Type or if you dont know enter na: ";
+		cin >> tempBlood;
+	} while (checkIfBloodGroupExists(tempBlood) == false);
+	message = "";
+
 
 	file.open(filepathUsersLogin, ios::app); // this will create file if it's not there, or open. //file mode parameter 
 	if (file.is_open())
@@ -219,13 +204,64 @@ void hospital()
 
 }
 
+// CheckIfUsernameExists() by Michaela
+// Checks if the username passed already exists in the usersLogin file.
+// Returns true if the username already exists,
+// Returns false if the username doesn't exist.
+bool checkIfUsernameExists(string tempName)
+{
+	bool ans;
+	for (auto it = users.begin(); it != users.end(); it++)
+	{
+		/* if checkUsername matches the tempName */
+		if (tempName == (*it).username)
+		{
+			message = "\nUsername exists\n";
+			return true;
+		}
+		else
+		{
+			message = "\nUsername doesnt exist\n";
+			ans = false;
+		}
+	}
+	return ans;
+}
+
+// CheckIfBloodGroupExists() by Michaela
+// Checks if the bloodgroup passed exists in the stock file or matches na
+// Returns true if the bloodgroup already exists or matches na,
+// Returns false if the bloodgroup doesn't exist.
+bool checkIfBloodGroupExists(string tempBlood)
+{
+	getAllStock();
+	bool ans = false;
+	for (auto it = totals.begin(); it != totals.end(); it++)
+	{
+		/* if checkUsername matches the tempName */
+		if (tempBlood == "na")
+		{
+			return true;
+		}
+		else if (tempBlood == (*it).bloodGroup)
+		{
+			return true;
+		}
+		else
+		{
+			message = "\nBlood Group doesnt exist\n";
+			ans = false;
+		}
+	}
+	return ans;
+}
+
 // Login function by Michaela
 // Returns true if the username and password entered match.
 // Returns false after 3 wrong attempts.
-// Stores users information in User vector/structs
+// References users information with loggedinUser pointer
 bool login(int tries)
 {
-
 	string username, password;
 	size_t i = 0;
 
@@ -239,7 +275,6 @@ bool login(int tries)
 	}
 	else
 	{
-
 		cout << message << endl;//potential message output
 		message = "";
 
@@ -273,6 +308,7 @@ bool login(int tries)
 			}//endIf username == tempName
 		}
 	}
+
 	if (username != users[i].username && tries < 3)
 	{
 		cout << users[i].username << "\ttries: " << tries << endl;
@@ -280,6 +316,7 @@ bool login(int tries)
 		message = "\nUsername incorrect\n";
 		login(tries);
 	}
+	return false;
 }
 
 // LoginRedirection function by Michaela
@@ -313,14 +350,14 @@ void loginRedirection()
 	}
 }
 
-
 // AdminMenu function by Michaela
 // Alerts Admin if there is any requests to review
-// Allows Admin to add new users(donor, hospital), and appointments
-// Allows Admin to view, adjust stock and stock requests
+// Allows Admin to view stock and stock requests
+// Allows Admin to view, edit and delete appointments
+// Allows Admin to view, edit and delete users
 void adminMenu()
 {
-	getRequests();
+	getAllRequests();
 	if (loggedinUser->permission != 0) // if loggedinUser isnt an admin, logs the user out and boots to main screen
 	{
 		loggedinUser = {};
@@ -333,7 +370,7 @@ void adminMenu()
 	{
 		system("CLS");
 		cout << "\n\t\t\tWelcome to the Admin Homepage.\n\n";
-		if (toApprove >= 1)
+		if (toApprove == true)
 		{
 			message = "\n\t\t*** There are new requests for you to approve ***\n";
 		}
@@ -375,9 +412,8 @@ void adminMenu()
 }
 
 // GetAllLogins function by Michaela
-// Gets all the logins from the usersFile
+// Gets all the logins from the filepathUsersLogin
 // Sets them all to be a users[] vector
-// Returns number of logins
 void getAllLogins()
 {
 	if (!users.empty())
@@ -409,6 +445,10 @@ void getAllLogins()
 	getAllBookings();
 }
 
+// GetAllBookings function by Michaela
+// Gets all the bookings from the filepathBookings
+// Checks if the name in the booking matches a users name
+// If it matches, adds booking details to users[] vector
 void getAllBookings()
 {
 	if (users.empty())
@@ -422,7 +462,7 @@ void getAllBookings()
 	{
 		while (!bookingsFile.eof())
 		{
-			;			getline(bookingsFile, tempName);
+			getline(bookingsFile, tempName);
 			for (size_t i = 0; i < users.size(); i++)
 			{
 				if (tempName != users[i].username && users[i].booking.d != 1)
@@ -449,6 +489,9 @@ void getAllBookings()
 	}
 }
 
+// GetAllStock function by Michaela
+// Gets all the stock from the filepathStock
+// Sets them all to be a totals[] vector
 void getAllStock()
 {
 	if (!totals.empty())
@@ -477,28 +520,10 @@ void getAllStock()
 	}
 }
 
-void viewAllStock()
-{
-	getAllStock();
-
-	system("CLS");
-	cout << "\n\t\t\tView All Stock\n" << endl;
-	for (size_t i = 0; i < totals.size(); i++)
-	{
-		cout << totals[i].bloodGroup << "\t\t" << totals[i].available << endl;
-	}
-	if (loggedinUser->permission == 1 && loggedinUser->permission != 0)
-	{
-		requestStock();
-	}
-	else if (loggedinUser->permission == 0)
-	{
-		viewAllRequests();
-	}
-	loginRedirection();
-}
-
-void getRequests()
+// GetAllRequests function by Michaela
+// Gets all the requests from the filepathRequests
+// Sets them all to be a requests[] vector
+void getAllRequests()
 {
 	if (!requests.empty())
 	{
@@ -521,7 +546,7 @@ void getRequests()
 			requests.push_back(temp_request);
 			if (temp_request.status == 0)
 			{
-				toApprove++;
+				toApprove = true;
 			}
 		}
 		file.close();
@@ -533,10 +558,37 @@ void getRequests()
 	}
 }
 
+// ViewAllStock function by Michaela
+// Displays all stock in the system
+// Directs hospitals to requestStock
+// Directs admin to viewAllRequests
+void viewAllStock()
+{
+	getAllStock();
+
+	system("CLS");
+	cout << "\n\t\t\tView All Stock\n" << endl;
+	for (size_t i = 0; i < totals.size(); i++)
+	{
+		cout << totals[i].bloodGroup << "\t\t" << totals[i].available << endl;
+	}
+	if (loggedinUser->permission == 1 && loggedinUser->permission != 0)
+	{
+		requestStock();
+	}
+	else if (loggedinUser->permission == 0)
+	{
+		viewAllRequests();
+	}
+}
+
+// ViewAllRequests function by Michaela
+// Allows an Admin to View all requests in the system
+// Admin can then edit the status of any request
 void viewAllRequests()
 {
 	string input;
-	getRequests();
+	getAllRequests();
 
 	system("CLS");
 	cout << "\n\t\t\tView All Requests\n" << endl;
@@ -620,6 +672,8 @@ void viewAllRequests()
 	}
 }
 
+// RequestStock function by Michaela
+// Allows a hospital to enter a new request for stock in the system
 void requestStock()
 {
 	string input;
@@ -659,6 +713,7 @@ void requestStock()
 
 // ViewAllBookings function by Michaela
 // Allows an Admin to View all bookings in the system
+// Admin can then add new bookings, or edit bookings
 void viewAllBookings()
 {
 	string input;
@@ -676,8 +731,19 @@ void viewAllBookings()
 	cin >> input;
 	if (input == "a")
 	{
-		cout << "Add new booking as Admin - Still to come..." << endl;
-		system("PAUSE");
+		cout << "To add a booking, please login as the donor and go through the process as them.\n[a] To login as the donor\n[b] To go back to the Menu" << endl;
+		input = "";
+		cin >> input;
+		if (input == "a")
+		{
+			loggedinUser = {};
+			getAllLogins();
+			loginRedirection();
+		}
+		else
+		{
+			return;
+		}
 	}
 	else if (input == "b")
 	{
@@ -685,14 +751,24 @@ void viewAllBookings()
 	}
 	else
 	{
-		cout << "Edit Booking by username as Admin - Still to come..." << endl;
-		system("PAUSE");
+		cout << "To edit a booking, please login as the donor and go through the process as them.\n[a] To login as the donor\n[b] To go back to the Menu" << endl;
+		input = "";
+		cin >> input;
+		if (input == "a")
+		{
+			loggedinUser = {};
+			getAllLogins();
+			loginRedirection();
+		}
+		else
+		{
+			return;
+		}
 	}
 }
 
 // ViewAllLogins function by Michaela
 // Allows an Admin to View all logins in the system
-// By making each line in file a user struct
 // Admin can enter a username to edit the login
 void viewAllLogins()
 {
@@ -746,10 +822,10 @@ void viewAllLogins()
 // EditUser function by Michaela
 // Gets username from input parameter
 // Finds the vector struct with that username and allows user to change password, or delete the user
-// Rewrites file with all users usernames and new password
-void editUser(string input)
+// Rewrites file with all users
+void editUser(string user)
 {
-	string user = input;
+	string tempBlood;
 	char choice = 'f';
 	system("CLS");
 	cout << "\n\t\t\tEdit User " << user << "\n" << endl;
@@ -761,15 +837,25 @@ void editUser(string input)
 		{
 			cout << "\t\t" << (*it).username << endl;
 			cout << "\t\t" << (*it).password << endl;
+			cout << "\t\t" << (*it).bloodGroup << endl;
 			cout << "\t\t" << (*it).permission << endl;
 			cout << endl;
-			cout << "To change password please enter [a]\nTo delete user please enter [d]\nTo go back to the MainMenu plese enter [b]";
+			cout << "To change password please enter [a]\nTo go back to the MainMenu plese enter [b]\nTo change users blood group please enter [c]\nTo delete user please enter [d]";
 			cin >> choice;
 			switch (choice)
 			{
 			case 'a':
 				cout << "\nPlease enter new password: " << endl;
 				cin >> (*it).password;
+				break;
+			case 'c':
+				do {
+					cout << message << endl;
+					cout << "Enter Blood Type or if you dont know enter na: ";
+					cin >> tempBlood;
+				} while (checkIfBloodGroupExists(tempBlood) == false);
+				message = "";
+				(*it).bloodGroup = tempBlood;
 				break;
 			case 'd':
 				system("CLS");
@@ -783,7 +869,7 @@ void editUser(string input)
 				{
 					if (choice == 'y')
 					{
-						if (loggedinUser->username == user)
+						if ((*it).username == user)
 						{
 							loggedinUser = {};
 							it = users.erase(it);
@@ -837,7 +923,36 @@ void editUser(string input)
 
 }
 
+// HospitalMenu function by Michaela
+// Allows hospital user to view and request stock
+void hospitalMenu()
+{
+	if (loggedinUser->permission == 2) // if loggedinUser isnt an admin, logs the user out and boots to main screen
+	{
+		loggedinUser = {};
+		rego();
+	}
+	char input;
 
+	system("CLS");
+	cout << "\n\t\t\tWelcome to the Hospital Homepage.\n\n";
+	cout << message << endl;
+	message = "";
+	cout << "[a] Display Stock\n[b] Logout" << endl;
+	cin >> input;
+	if (input == 'a')
+	{
+		viewAllStock();
+	}
+	else
+	{
+		loggedinUser = {};
+		rego();
+	}
+}
+
+
+//Functions by Delear for the donor user
 void welcome()
 {
 	int a;  //local variable 
@@ -880,10 +995,8 @@ void welcome()
 }
 void eligibilityTest()
 {
-	//users.push_back(User());  //global variable default with constructor
-	//users.push_back(User()); // push back new user
 	char op, a, b;  //local variables
-	if (d == 1) //d = 1 means they already booked an appoint
+	if (loggedinUser->booking.d == 1) //d = 1 means they already booked an appoint
 	{
 		cout << "\nYou already booked an appointment" << endl;
 		cout << "\nif you would like to view or cancel an appointment press y, or press n to go back to the main page: ";
@@ -897,7 +1010,7 @@ void eligibilityTest()
 			welcome();
 		}
 	}
-	e = 0;  //e = 0 means they haven't done the eligibilty test
+	loggedinUser->booking.e = 0;  //e = 0 means they haven't done the eligibilty test
 	string Questions[7] = { {"\nAre you younger than 16 years and older than 71"}, {"\nDo you weigh less than 50kgs"}, {"\nHave you used drugs such as meth and cocaine before"},
 		{"\nHave you had any new tattoos or piercings within the last 3months?? "}, {"\nHave you had a cold, sore throat or influenza within the last 28 days"}, {"\nHave you taken any antibiotics within the last 7 days"},
 		{"\nHave you or anyone in your household tested positive for covid-19 in the last 14 days"} };  //string array to store the eligibility questions
@@ -976,7 +1089,7 @@ void bookAppt()
 	if (loggedinUser->booking.d == 1)  //d = 1 means they already booked an appointment
 	{
 		cout << "\nYou already booked an appointment" << endl;
-		cout << "\nif you would like to view or cancel an appointment press y, or press n to go back to the main page";
+		cout << "\nif you would like to view or cancel an appointment press y, or press n to go back to the main page: ";
 		cin >> op;
 		if (op == 'y')
 		{
@@ -1001,7 +1114,7 @@ void bookAppt()
 			cin >> loggedinUser->booking.location;
 		}
 	}
-	cout << "\nWhat date would you like to donate, please type in this order: year - month - day: ";
+	cout << "\nWhat date would you like to donate, please type in this format: yyyymmdd: ";
 	cin >> loggedinUser->booking.date;
 	if (loggedinUser->booking.date <= 20220620 || loggedinUser->booking.date >= 20240620)
 	{
@@ -1120,7 +1233,7 @@ void editAppt()
 			cin >> loggedinUser->booking.location;
 		}
 	}
-	cout << "\nWhat date would you like to donate, please type in this order: year - month - day: ";
+	cout << "\nWhat date would you like to donate, please type in this format: yyyymmdd: ";
 	cin >> loggedinUser->booking.date;
 	if (loggedinUser->booking.date <= 20220620 || loggedinUser->booking.date >= 20240620)
 	{
@@ -1191,10 +1304,8 @@ void editAppt()
 		}
 	} while (a != 'y' && a != 'n');
 }
-
-void deletefile(string username)  //delete file completely deletes the txt file
+void deletefile(string user)  
 {
-	string user = username;
 	char choice = 'f';
 	getAllLogins();
 
@@ -1245,38 +1356,16 @@ void deletefile(string username)  //delete file completely deletes the txt file
 			}
 		}
 		deleteFile.close();
-		getAllLogins();
 	}
 	else
 	{
 		cout << "Cannot open file";
 	}
-
-	cout << endl << "Canceled successfully. Goodbye" << endl;
-}
-
-void hospitalMenu()
-{
-	if (loggedinUser->permission == 2) // if loggedinUser isnt an admin, logs the user out and boots to main screen
+	getAllLogins();
+	cout << endl << "Canceled successfully" << endl;
+	if (loggedinUser->permission == 0)
 	{
-		loggedinUser = {};
-		rego();
+		return;
 	}
-	char input;
-
-	system("CLS");
-	cout << "\n\t\t\tWelcome to the Hospital Homepage.\n\n";
-	cout << message << endl;
-	message = "";
-	cout << "[a] Display Stock\n[b] Logout" << endl;
-	cin >> input;
-	if (input == 'a')
-	{
-		viewAllStock();
-	}
-	else
-	{
-		loggedinUser = {};
-		rego();
-	}
+	else { welcome(); }
 }
