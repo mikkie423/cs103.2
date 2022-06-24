@@ -1,0 +1,16 @@
+hospital1
+o+
+10
+1
+hospital2
+a+
+12
+0
+hospital1
+a+
+10
+1
+hospital1
+a+
+0
+2
